@@ -48,7 +48,7 @@
       3- CentOs_8
       4- Ubuntu
       5- Others  
- - tasks:
+  tasks:
    - name: Creation of Machine  
     # when: (os_system == "1")
     # no network
@@ -67,32 +67,26 @@
              power_on: yes
      when: (os_system == "1")
      delegate_to: localhost
-  #   when: (os_system == "1")
-     name: configure ip-address
-     local_action:
-             vmware_vm_shell:
-             vm_username: Administrator
-             vm_password: '{{ guest_password }}'
-             vm_id: '{{ guest_name  }}'
-             vm_shell: 'c:\windows\system32\windowspowershell\v1.0\powershell.exe'
-             vm_shell_args: '-command "(new-netipaddress -InterfaceAlias Ethernet0 -IPAddress {{ ip_addr }} -prefixlength 24 -defaultgateway {{ vm_gateway }})"' 
-             name: DNS IP
-             vm_shell: 'c:\windows\system32\windowspowershell\v1.0\powershell.exe'  
-             vm_shell_args: '-command "(Set-DnsClientServerAddress -InterfaceAlias Ethernet0 -ServerAddress 8.8.8.8)"'
-             name: machine_name
-             prompt: Enter the Machine Name
-             private: no
-             vm_shell:  'c:\windows\system32\windowspowershell\v1.0\powershell.exe'
-             vm_shell_args: '-command "(Rename-Computer -NewName {{ machine_name }})"'
+   - name: configure ip-address
+     # local_action:
+     vmware_vm_shell:
+              vm_username: Administrator
+              vm_password: '{{ guest_password }}'
+              vm_id: '{{ guest_name  }}'
+              vm_shell: 'c:\windows\system32\windowspowershell\v1.0\powershell.exe'
+              vm_shell_args: '-command "(new-netipaddress -InterfaceAlias Ethernet0 -IPAddress {{ ip_addr }} -prefixlength 24 -defaultgateway {{ vm_gateway }})"' 
      when: (os_system == "1")
-             #  name: reboot-guest
-             # vmware_guest_powerstate:
-             # name: "{{ guest_name }}"
-             # state: reboot-guest
-             #  delegate_to: localhost        
      delegate_to: localhost
+   - name: configure Dns
+     # local_action:
+     vmware_vm_shell:
+              vm_username: Administrator
+              vm_password: '{{ guest_password }}'
+              vm_id: '{{ guest_name  }}'
+              vm_shell: 'c:\windows\system32\windowspowershell\v1.0\powershell.exe'  
+              vm_shell_args: '-command "(Set-DnsClientServerAddress -InterfaceAlias Ethernet0 -ServerAddress 8.8.8.8)"'
+     when: (os_system == "1") 		 
    - name: guests_facts  
-     #   tags: fac
      vmware_guest_info:
              hostname: "{{ vc_name }}"
              username: "{{ myuser  }}"
@@ -103,7 +97,6 @@
      delegate_to: localhost
      register: facts
    - name: disks_facts
-    #   tags: fac
      vmware_guest_disk_facts:   
          hostname: "{{ vc_name }}"
          username: "{{ myuser  }}"
