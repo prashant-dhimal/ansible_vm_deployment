@@ -30,7 +30,9 @@
      private: no
    - name: vm_gateway
      prompt: Enter the default gateway
-     private: no  
+     private: no
+   - name: guest_password
+     prompt: Enter the guest password  
      # tasks:
      # - name: vm_password_new
      # prompt: Enter new password for the system 
@@ -46,9 +48,10 @@
       3- CentOs_8
       4- Ubuntu
       5- Others  
-  tasks:
+ - tasks:
    - name: Creation of Machine  
-     when: (os_system == "1")
+    # when: (os_system == "1")
+    # no network
      vmware_deploy_ovf:
              #shared_path: //172.31.254.248/Users/Administrator/Desktop/ovf
              hostname: '{{ vc_name  }}'
@@ -57,13 +60,14 @@
              name: '{{ guest_name }}'
              datacenter: ha-datacenter
              datastore: datastore1
-             networks: "{u'VM Network':u'GROUP1'}"
              validate_certs: no
-             ovf: //home/prashant/sites/windows_server/windows_server.ovf
+             ovf: /home/prashant/windows_server/windows_server.ovf
            #  ovf: /mnt/c/users/thinkpad/desktop/windows_server/windows_server.ovf
             # wait_for_ip_ address: yes
              power_on: yes
+     when: (os_system == "1")
      delegate_to: localhost
+  #   when: (os_system == "1")
      name: configure ip-address
      local_action:
              vmware_vm_shell:
@@ -80,33 +84,34 @@
              private: no
              vm_shell:  'c:\windows\system32\windowspowershell\v1.0\powershell.exe'
              vm_shell_args: '-command "(Rename-Computer -NewName {{ machine_name }})"'
+     when: (os_system == "1")
              #  name: reboot-guest
              # vmware_guest_powerstate:
              # name: "{{ guest_name }}"
              # state: reboot-guest
              #  delegate_to: localhost        
-     
-     #  - name: guests_facts  
-     # # tags: fac
-     # vmware_guest_facts:
-     #       hostname: "{{ vc_name }}"
-     #       username: "{{ myuser  }}"
-     #       password: "{{ mypass }}"
-     #       datacenter: ha-datacenter
-     #       validate_certs: no
-     #       name: "{{ guest_name }}"
-     # delegate_to: localhost
-     # register: facts
-     # - name: disks_facts
-     # tags: fac
-     # vmware_guest_disk_facts:   
-     #   hostname: "{{ vc_name }}"
-     #   username: "{{ myuser  }}"
-     #   password: "{{ mypass }}"
-     #   datacenter: ha-datacenter
-     #   validate_certs: no
-     #   name: "{{ guest_name }}"
-     #  delegate_to: localhost   
+     delegate_to: localhost
+   - name: guests_facts  
+     #   tags: fac
+     vmware_guest_info:
+             hostname: "{{ vc_name }}"
+             username: "{{ myuser  }}"
+             password: "{{ mypass }}"
+             datacenter: ha-datacenter
+             validate_certs: no
+             name: "{{ guest_name }}"
+     delegate_to: localhost
+     register: facts
+   - name: disks_facts
+    #   tags: fac
+     vmware_guest_disk_facts:   
+         hostname: "{{ vc_name }}"
+         username: "{{ myuser  }}"
+         password: "{{ mypass }}"
+         datacenter: ha-datacenter
+         validate_certs: no
+         name: "{{ guest_name }}"
+     delegate_to: localhost   
      # when: os_system == "{{ os_system }}"  and hdd > "{{ hdd }}"
      #  disk:
      #        size-gb: "{{ hdd }}"
@@ -125,7 +130,7 @@
      when: (os_system == "2")
      vmware_deploy_ovf:
             hostname: '{{ vc_name  }}'
-            username: '{{ myuser  }}'
+            username: '{{ myuser }}'
             password: '{{ mypass  }}'
             name: '{{ guest_name }}'
             datacenter: ha-datacenter
@@ -147,20 +152,24 @@
      delegate_to: locahost
     #tasks:    
    - name: hdd increase
-     when: (os_system == "{{ os_system }}" and size_gb < "{{ hdd }}") 
-     vmware_guest:
+     tags: hdd
+     # when: (os_system == "{{ os_system }}" and hdd < "{{ hdd }}") 
+     vmware_guest: 
        username: "{{ myuser }}"
        hostname: "{{ vc_name }}"
        name: "{{ guest_name }}"
-       passsword: "{{ mypass}}" 
+       password: "{{ mypass}}" 
        disk:
-             size-gb: "{{ hdd }}"
+           - size_gb: "{{ hdd }}"
              type: thin
              datastore: datastore1
-             datacenter: ha-datacenter 
+             datacenter: ha-datacenter
+       validate_certs: no
+     when: (hdd > "20") 
      delegate_to: localhost
    - name: memory_increase
-     when: ( memory_mb > "{{ ram  }}")
+     tags: hdd
+    # when: ( ram > "{{ #ram }})"
      vmware_guest:
       username: "{{myuser}}"
       hostname: "{{ vc_name }}"
@@ -169,10 +178,13 @@
       state: poweredoff
       hardware:
              memory_mb: "{{ ram }}"
-             # datacenter: ha-datacenter
+             # datacenter: ha-datacenr
+      validate_certs: no         
+     when: ( ram > "2048")         
      delegate_to: localhost
    - name: cpu increase
-     when: (num_cpu > "{{ cpu }}")
+     tags: hdd
+    # when: ( cpu > " 2 " )
      vmware_guest:
       username: "{{ myuser }}"
       hostname: "{{ vc_name }}"
@@ -180,5 +192,7 @@
       password: "{{ mypass  }}"  
       state: poweredoff
       hardware:
-             num_cpu: "{{ cpu }} "
+             num_cpu: "{{ cpu }}"
+      validate_certs: no
+     when: (cpu > "2")
      delegate_to: localhost 
