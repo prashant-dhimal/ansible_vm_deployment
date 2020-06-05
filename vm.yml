@@ -67,25 +67,10 @@
              power_on: yes
      when: (os_system == "1")
      delegate_to: localhost
-   - name: install vmware tools via Chocolatey
-     tags: tools
-     name: '{{ guest_name }}'
-     # hostname: '{{ vc_name }}'
-     # username: '{{ myuser  }}'
-     # password: '{{  mypass }}'
-     #  vm_username: Administrator
-     #  validate_certs: no
-     #  vm_password: '{{ guest_password }}'
-     win_chocolatey: name=vmware-tools state=present
-     when: ansible_os_family == "Windows"
    - name: configure ip-address
      # local_action:
      vmware_vm_shell:
-              hostname: '{{ vc_name  }}'
-              username: '{{ myuser  }}'
-              password: '{{ mypass  }}'
               vm_username: Administrator
-              validate_certs: no
               vm_password: '{{ guest_password }}'
               vm_id: '{{ guest_name  }}'
               vm_shell: 'c:\windows\system32\windowspowershell\v1.0\powershell.exe'
@@ -95,10 +80,6 @@
    - name: configure Dns
      # local_action:
      vmware_vm_shell:
-              hostname: '{{ vc_name  }}'
-              username: '{{ myuser  }}'
-              password: '{{ mypass  }}'
-              validate_certs: no
               vm_username: Administrator
               vm_password: '{{ guest_password }}'
               vm_id: '{{ guest_name  }}'
