@@ -61,16 +61,43 @@
              datacenter: ha-datacenter
              datastore: datastore1
              validate_certs: no
-             ovf: /home/prashant/windows_server/windows_server.ovf
+             ovf: /home/prashant/windows_test/windows_test.ovf
            #  ovf: /mnt/c/users/thinkpad/desktop/windows_server/windows_server.ovf
             # wait_for_ip_ address: yes
              power_on: yes
      when: (os_system == "1")
      delegate_to: localhost
+             #- name: install vmware tools via Chocolatey
+             #tags: tools
+             # name: '{{ guest_name }}'
+     # hostname: '{{ vc_name }}'
+     # username: '{{ myuser  }}'
+     # password: '{{  mypass }}'
+     #  vm_username: Administrator
+     #  validate_certs: no
+     #  vm_password: '{{ guest_password }}'
+     # win_chocolatey: name=vmware-tools state=present
+     # when: ansible_os_family == "Windows"
+   - name: Wait for VMware tools to become available 
+     vmware_guest_tools_wait:
+      name: '{{ guest_name }}'
+      hostname: '{{ vc_name  }}'
+      username: '{{ myuser }}'
+      password: '{{ mypass }}'
+      validate_certs: no
+     delegate_to: localhost
+     retries: 3
+     delay: 15
+     register: result           
+     until: result is succeeded 
    - name: configure ip-address
      # local_action:
      vmware_vm_shell:
+              hostname: '{{ vc_name  }}'
+              username: '{{ myuser  }}'
+              password: '{{ mypass  }}'
               vm_username: Administrator
+              validate_certs: no
               vm_password: '{{ guest_password }}'
               vm_id: '{{ guest_name  }}'
               vm_shell: 'c:\windows\system32\windowspowershell\v1.0\powershell.exe'
@@ -80,6 +107,10 @@
    - name: configure Dns
      # local_action:
      vmware_vm_shell:
+              hostname: '{{ vc_name  }}'
+              username: '{{ myuser  }}'
+              password: '{{ mypass  }}'
+              validate_certs: no
               vm_username: Administrator
               vm_password: '{{ guest_password }}'
               vm_id: '{{ guest_name  }}'
