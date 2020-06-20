@@ -192,11 +192,38 @@
        validate_certs: no
      when: (hdd > "20") 
      delegate_to: localhost
-   - name: memory_increase
+   - name: copy file to vm
+     vmware_guest_file_operation:
+         hostname: "{{ vc_name }}"
+         username: "{{ myuser }}"
+         password: "{{ mypass }}"
+         datacenter: ha-datacenter
+         vm_id: "{{ guest_name }}"
+         vm_username: Administrator
+         vm_password: "{{ guest_password }}"
+         validate_certs: no
+         copy:
+             src: "/home/prashant/sites/hdd_ext.ps1"
+             dest: "c:/tmp/"
+             overwrite: False
+     when: (os_system == "1" and  hdd > "20")        
+     delegate_to: localhost  
+   - name: size extend
+     win_command: powershell.exe -ExecutionPolicy ByPass -File C:/temp/hdd_ext.ps1
+     # hostname: '{{ vc_name  }}'
+     # username: '{{ myuser  }}'
+     # password: '{{ mypass  }}'
+     # validate_certs: no
+     # vm_username: Administrator
+     # vm_password: '{{ guest_password }}'
+     # vm_id: '{{ guest_name  }}'
+     when: (os_system == "1" and hdd > "20")
+     delegate_to: localhost 
+   - name: memory_increase   
      tags: hdd
-    # when: ( ram > "{{ #ram }})"
+    #when: ( ram > "{{ #ram }})"
      vmware_guest:
-      username: "{{myuser}}"
+      username: "{{ myuser }}"
       hostname: "{{ vc_name }}"
       name: "{{ guest_name }}"
       password: "{{ mypass }}"
