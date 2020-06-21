@@ -183,7 +183,7 @@
        username: "{{ myuser }}"
        hostname: "{{ vc_name }}"
        name: "{{ guest_name }}"
-       password: "{{ mypass}}" 
+       password: "{{ mypass }}" 
        disk:
            - size_gb: "{{ hdd }}"
              type: thin
@@ -203,13 +203,40 @@
          vm_password: "{{ guest_password }}"
          validate_certs: no
          copy:
-             src: "/home/prashant/sites/hdd_ext.ps1"
-             dest: "c:/tmp/"
+             src: /home/prashant/sites/hdd_ext.ps1
+             dest: C:\Users\Administrator\Desktop\hdd_ext.ps1
              overwrite: False
+             # win_command: powershell.exe -ExecutionPolicy ByPass -File C:\tmp\hdd_ext.ps1     
      when: (os_system == "1" and  hdd > "20")        
      delegate_to: localhost  
    - name: size extend
-     win_command: powershell.exe -ExecutionPolicy ByPass -File C:/temp/hdd_ext.ps1
+     vmware_vm_shell:                    
+       hostname: '{{ vc_name  }}'
+       username: '{{ myuser  }}'
+       password: '{{ mypass  }}'
+       validate_certs: no
+       vm_username: Administrator
+       vm_password: '{{ guest_password }}'
+       vm_id: '{{ guest_name  }}'
+       #vm_shell: 'C:\windows\system32\cmd.exe'
+       vm_shell: 'C:\Windows\System32\WindowsPowershell\v1.0\powershell.exe'
+       vm_shell_args: "{{ item }}"
+       with_items:
+        - "Set-ExecutionPolicy Unrestricted}"
+        - '"C:\Users\Administrator\Desktop\hdd_ext.ps1"'   
+                  
+       # vm_shell_args: powershell.exe -ExecutionPolicy Bypass -File hdd_ext.ps1 -pass "{{ guest_password }}" -user Administrator -gr Localgroup
+       #vm_shell_cwd: 'C:\Users\Administrator\Desktop'
+     # username: "{{ myuser }}"
+     # hostname: "{{ vc_name }}"
+     # name: "{{ guest_name }}" 
+     # password: "{{ mypass }}" 
+     # tags: test
+     #  win_partition:
+             # partition_size: -1
+             # partition_number: 1
+             # disk_number: 1
+
      # hostname: '{{ vc_name  }}'
      # username: '{{ myuser  }}'
      # password: '{{ mypass  }}'
@@ -218,7 +245,18 @@
      # vm_password: '{{ guest_password }}'
      # vm_id: '{{ guest_name  }}'
      when: (os_system == "1" and hdd > "20")
-     delegate_to: localhost 
+     delegate_to: localhost  
+   - name: Set the state of a virtual machine to poweroff
+     vmware_guest_powerstate:
+         hostname: "{{ vc_name }}"
+         username: "{{ myuser }}"
+         password: "{{ mypass }}"
+         validate_certs: no
+         #folder: "/{{ datacenter_name }}/vm/my_folder"
+         name: "{{ guest_name }}"
+         state: powered-off
+     delegate_to: localhost
+     register: deploy
    - name: memory_increase   
      tags: hdd
     #when: ( ram > "{{ #ram }})"
@@ -227,12 +265,13 @@
       hostname: "{{ vc_name }}"
       name: "{{ guest_name }}"
       password: "{{ mypass }}"
-      state: poweredoff
+      # #state: poweredoff
       hardware:
              memory_mb: "{{ ram }}"
              # datacenter: ha-datacenr
       validate_certs: no         
-     when: ( ram > "2048")         
+     when: ( ram > "2048") 
+     # state: poweredoff     
      delegate_to: localhost
    - name: cpu increase
      tags: hdd
@@ -242,7 +281,7 @@
       hostname: "{{ vc_name }}"
       name: "{{ guest_name }} "
       password: "{{ mypass  }}"  
-      state: poweredoff
+      #state: poweredoff
       hardware:
              num_cpu: "{{ cpu }}"
       validate_certs: no
