@@ -102,6 +102,7 @@
               vm_id: '{{ guest_name  }}'
               vm_shell: 'c:\windows\system32\windowspowershell\v1.0\powershell.exe'
               vm_shell_args: '-command "(new-netipaddress -InterfaceAlias Ethernet0 -IPAddress {{ ip_addr }} -prefixlength 24 -defaultgateway {{ vm_gateway }})"' 
+              wait_for_process: yes
      when: (os_system == "1")
      delegate_to: localhost
    - name: configure Dns
@@ -116,6 +117,7 @@
               vm_id: '{{ guest_name  }}'
               vm_shell: 'c:\windows\system32\windowspowershell\v1.0\powershell.exe'  
               vm_shell_args: '-command "(Set-DnsClientServerAddress -InterfaceAlias Ethernet0 -ServerAddress 8.8.8.8)"'
+              wait_for_process: yes
      when: (os_system == "1")
      delegate_to: localhost 		 
    - name: guests_facts  
@@ -150,7 +152,7 @@
      # state: poweredoff
      # - hardware:
      #        num_cpu: "{{ cpu  }}"
-     delegate_to: localhost
+     #delegate_to: localhost
    - name: creation of machine          
      when: (os_system == "2")
      vmware_deploy_ovf:
@@ -192,6 +194,43 @@
        validate_certs: no
      when: (hdd > "20") 
      delegate_to: localhost
+   - name: Reboot-Guest
+     vmware_guest_powerstate: 
+         name: '{{ guest_name }}'
+         hostname: "{{ vc_name  }}"
+         username: "{{ myuser }}"         
+         password: "{{ mypass  }}"
+         validate_certs: no
+         state: reboot-guest
+     delegate_to: localhost
+     register: deploy
+   - name: Wait for 45 seconds
+     wait_for: timeout=45
+     delegate_to: localhost
+   - name: autologon
+     vmware_guest:
+         username: "{{ myuser }}"
+         hostname: "{{ vc_name }}"
+         name: "{{ guest_name }}"
+         password: "{{ mypass }}"
+         validate_certs: no
+         customization:
+                 autologon: yes
+                 fullname: Administrator
+                 password: "{{ guest_password  }}"
+     when: (os_system == "1" and  hdd > "20")
+     delegate_to: localhost  
+  #  - name: Set the state of a virtual machine to reboot
+  #  vmware_guest_powerstate:
+  #    hostname: "{{ vc_name }}"
+  #    username: "{{ myuser }}"
+  #    password: "{{ mypass }}"
+  #    validate_certs: no
+  #    name: "{{ guest_name }}"
+  #    state: reboot-guest
+  #    wait_for_process: yes
+  #  delegate_to: localhost
+  #  register: deploy  
    - name: copy file to vm
      vmware_guest_file_operation:
          hostname: "{{ vc_name }}"
@@ -204,7 +243,7 @@
          validate_certs: no
          copy:
              src: /home/prashant/sites/hdd_ext.ps1
-             dest: C:\Users\Administrator\Desktop\hdd_ext.ps1
+             dest: C:\Users\Administrator\AppData\Local\Temp\hdd_ext.ps1
              overwrite: False
              # win_command: powershell.exe -ExecutionPolicy ByPass -File C:\tmp\hdd_ext.ps1     
      when: (os_system == "1" and  hdd > "20")        
@@ -218,15 +257,15 @@
        vm_username: Administrator
        vm_password: '{{ guest_password }}'
        vm_id: '{{ guest_name  }}'
-       #vm_shell: 'C:\windows\system32\cmd.exe'
+       # vm_shell: 'C:\windows\system32\cmd.exe'
        vm_shell: 'C:\Windows\System32\WindowsPowershell\v1.0\powershell.exe'
-       vm_shell_args: "{{ item }}"
-       with_items:
-        - "Set-ExecutionPolicy Unrestricted}"
-        - '"C:\Users\Administrator\Desktop\hdd_ext.ps1"'   
+       #  vm_shell_args: "{{ items }}"
+       #: with_items:
+       #  - "Set-ExecutionPolicy Unrestricted}"
+       # - '"C:\Users\Administrator\Desktop\hdd_ext.ps1"'   
                   
-       # vm_shell_args: powershell.exe -ExecutionPolicy Bypass -File hdd_ext.ps1 -pass "{{ guest_password }}" -user Administrator -gr Localgroup
-       #vm_shell_cwd: 'C:\Users\Administrator\Desktop'
+       vm_shell_args: powershell.exe -executionpolicy bypass -File c:\users\administrator\appdata\local\temp\hdd_ext.ps1
+       wait_for_process: yes
      # username: "{{ myuser }}"
      # hostname: "{{ vc_name }}"
      # name: "{{ guest_name }}" 
@@ -246,6 +285,38 @@
      # vm_id: '{{ guest_name  }}'
      when: (os_system == "1" and hdd > "20")
      delegate_to: localhost  
+     # - name: no action
+     # vmware_guest_file_operation:
+     # hostname: "{{ vc_name }}"
+     # username: "{{ myuser }}"
+     # password: "{{ mypass }}"                                                                                                
+     # datacenter: ha-datacenter
+     # vm_id: "{{ guest_name }}"
+     # vm_username: Administrator
+     # vm_password: "{{ guest_password }}"
+     # validate_certs: no
+     # file:
+     #    path: c:\users\administrator\desktop\hdd_ext.#ps1
+     # state: absent
+          #win_command: powershell.exe -ExecutionPolicy ByPass -File C:\tmp\hdd_ext.ps1
+          # when: (os_system == "1" and  hdd > "20")
+          # delegate_to: localhost  
+          #   - name: Create directory inside a vm
+          # vmware_guest_file_operation:
+          #  hostname: "{{ vc_name  }}"
+          # username: "{{ myuser}}"
+          # # password: "{{ mypass  }}"
+          # datacenter: ha-datacenter
+          # validate_certs: no
+          # vm_id: "{{ guest_name}}"
+          #  vm_username: Administrator
+          # vm_password: "{{ guest_password}}"
+          # directory:
+          #      path: '"C:\Users\Administrator\Desktop\hdd_ext.ps1"'
+          #      operation: delete
+          #      recurse: no
+          #  when: (os_system == "1")     
+          #  delegate_to: localhost
    - name: Set the state of a virtual machine to poweroff
      vmware_guest_powerstate:
          hostname: "{{ vc_name }}"
@@ -267,23 +338,32 @@
       password: "{{ mypass }}"
       # #state: poweredoff
       hardware:
-             memory_mb: "{{ ram }}"
+                     memory_mb: "{{ ram }}"
              # datacenter: ha-datacenr
       validate_certs: no         
      when: ( ram > "2048") 
      # state: poweredoff     
      delegate_to: localhost
    - name: cpu increase
-     tags: hdd
     # when: ( cpu > " 2 " )
      vmware_guest:
       username: "{{ myuser }}"
       hostname: "{{ vc_name }}"
-      name: "{{ guest_name }} "
+      name: "{{ guest_name }}"
       password: "{{ mypass  }}"  
       #state: poweredoff
       hardware:
-             num_cpu: "{{ cpu }}"
+             num_cpus: "{{ cpu }}"
       validate_certs: no
-     when: (cpu > "2")
+     when: (cpu > "1")
      delegate_to: localhost 
+   - name: Reboot-Guest
+     vmware_guest_powerstate:
+         name: '{{ guest_name }}'
+         hostname: "{{ vc_name  }}"
+         username: "{{ myuser }}"
+         password: "{{ mypass  }}"
+         validate_certs: no
+         state: powered-on
+     delegate_to: localhost
+     
